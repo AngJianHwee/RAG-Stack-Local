@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 from pinecone import Pinecone, Index, PodSpec
 import time
+from .config import OLLAMA_MODEL_NAME
 
 # Configuration
 OLLAMA_URL = "http://ollama:11434/api/embeddings"
@@ -9,7 +10,7 @@ PINECONE_API_KEY = "YOUR_API_KEY" # Pinecone local doesn't strictly need this, b
 PINECONE_HOST = "pinecone-local" # This will be the service name in docker-compose
 PINECONE_ENVIRONMENT = "local" # Placeholder for local
 INDEX_NAME = "rag-index"
-MODEL_NAME = "all-minilm:33m"
+MODEL_NAME = OLLAMA_MODEL_NAME
 
 # Initialize Pinecone
 @st.cache_resource

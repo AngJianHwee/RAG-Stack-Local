@@ -8,6 +8,3 @@ EXPOSE 5081-6000
 # Set environment variables as specified by the user
 ENV PORT=5081
 ENV PINECONE_HOST=localhost
-
-# Command to run Pinecone Local
-CMD ["pinecone-local"]

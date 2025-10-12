@@ -10,6 +10,7 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    command: ["/bin/bash", "-c", "ollama pull all-minilm:33m && ollama serve"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434"]
       interval: 30s
