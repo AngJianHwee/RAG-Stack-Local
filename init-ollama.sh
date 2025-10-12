@@ -34,9 +34,21 @@ else
   echo "Model '${OLLAMA_MODEL}' not found. Pulling model..."
   # Use curl to pull the model
   curl -X POST "${OLLAMA_HOST}/api/pull" -d "{\"name\": \"${OLLAMA_MODEL}\"}"
-  echo "Model pull command sent. The model will download in the background."
-  # Note: The pull API is async. For a truly synchronous setup, you'd need to poll the /api/tags endpoint again.
-  # For this use case, we assume the app can handle a slight delay if the model is still downloading.
+  echo "Model pull command sent. Waiting for model to be ready..."
+
+  # Wait for the model to be available
+  ATTEMPTS=0
+  MAX_ATTEMPTS=60 # Increased attempts for model download
+  while ! curl -s -f "${OLLAMA_HOST}/api/tags" | grep -q "\"name\": \"${OLLAMA_MODEL}\""; do
+    ATTEMPTS=$((ATTEMPTS + 1))
+    if [ ${ATTEMPTS} -ge ${MAX_ATTEMPTS} ]; then
+      echo "Model '${OLLAMA_MODEL}' not ready after ${MAX_ATTEMPTS} attempts. Exiting."
+      exit 1
+    fi
+    echo "Model '${OLLAMA_MODEL}' not yet available, waiting 5 seconds..."
+    sleep 5
+  done
+  echo "Model '${OLLAMA_MODEL}' is ready."
 fi
 
 echo "Ollama initialization complete."
