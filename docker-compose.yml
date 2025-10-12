@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    command: serve
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    # Pull the model after the service starts
+    # This command will run once the container is up and healthy
+    # Note: This is a simplified approach. For production, consider pre-pulling or a more robust init script.
+    # entrypoint: ["/bin/bash", "-c", "ollama serve & ollama pull all-minilm:33m && wait"]
+    # A better approach for pulling models is to use an init container or a separate script.
+    # For now, we'll assume the model is pulled manually or via a separate command.
+    # We can add a command to pull the model in the Streamlit service's entrypoint if needed.
+
+  pinecone-local:
+    image: ghcr.io/pinecone-io/pinecone-local:latest
+    container_name: pinecone-local
+    ports:
+      - "5081-6000:5081-6000"
+    environment:
+      - PORT=5081
+      - PINECONE_HOST=localhost
+    platform: linux/amd64
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5081/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: streamlit_app
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    depends_on:
+      ollama:
+        condition: service_healthy
+      pinecone-local:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - PINECONE_HOST=pinecone-local
+      - PINECONE_API_KEY=pclocal # Assuming 'pclocal' as per the notes
+    command: streamlit run app.py
+
+volumes:
+  ollama_data:
