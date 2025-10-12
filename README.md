@@ -30,6 +30,7 @@ Ensure you have the following installed on your system:
 
 -   **Docker** and **Docker Compose**: [Install Docker](https://docs.docker.com/get-docker/)
 -   **Ollama**: [Install Ollama natively on your host machine](https://ollama.com/download). Make sure it's running and accessible on port `11434`.
+    -   On Ubuntu run `curl -fsSL https://ollama.com/install.sh | sh` to install.
     -   After installing Ollama, pull the required model (e.g., `all-minilm:33m`):
         ```bash
         ollama pull all-minilm:33m
