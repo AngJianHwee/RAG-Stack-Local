@@ -6,7 +6,7 @@ from pinecone import ServerlessSpec
 
 # Environment variables for service hosts
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-PINECONE_HOST = os.getenv("PINECONE_HOST", "http://localhost:5081")
+PINECONE_HOST = os.getenv("PINECONE_HOST", "http://localhost:5081").replace("http://", "") # gRPC client expects host without protocol
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "pclocal") # Default to 'pclocal' as per notes
 
 st.title("Streamlit RAG with Ollama and Pinecone Local")
