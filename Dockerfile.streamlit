@@ -6,11 +6,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install Python, pip, curl, and other essentials
 RUN apt-get update && \
-    apt-get install -y python3.9 python3-pip curl grep git && \
+    apt-get install -y python3 python3-pip curl grep git && \
     rm -rf /var/lib/apt/lists/*
-
-# Set python3.9 as the default python
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1
 
 WORKDIR /app
 
