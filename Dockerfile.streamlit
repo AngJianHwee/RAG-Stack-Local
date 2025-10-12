@@ -1,18 +1,30 @@
-FROM python:3.9-slim-bullseye
+# Use a recent Ubuntu LTS release as the base image
+FROM ubuntu:22.04
 
-# Install curl and grep
-RUN apt-get update && apt-get install -y curl grep && rm -rf /var/lib/apt/lists/*
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Python, pip, curl, and other essentials
+RUN apt-get update && \
+    apt-get install -y python3.9 python3-pip curl grep git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set python3.9 as the default python
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1
 
 WORKDIR /app
 
+# Copy only the requirements file first to leverage Docker cache
 COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy the rest of the application code
 COPY . .
 
-# Make the init script executable
-RUN chmod +x init-ollama.sh
-
+# Expose the Streamlit port
 EXPOSE 8501
 
+# The command to run the Streamlit application
 CMD ["streamlit", "run", "app.py"]

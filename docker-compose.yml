@@ -1,31 +1,6 @@
 version: '3.8'
 
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - rag_network
-    restart: unless-stopped
-    tty: true
-    stdin_open: true
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
   pinecone-local:
     image: ghcr.io/pinecone-io/pinecone-local:latest
     container_name: pinecone-local
@@ -43,21 +18,6 @@ services:
       timeout: 10s
       retries: 5
 
-  init-ollama:
-    build:
-      context: .
-      dockerfile: Dockerfile.streamlit
-    container_name: init_ollama
-    depends_on:
-      ollama:
-        condition: service_healthy
-    networks:
-      - rag_network
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-      - OLLAMA_MODEL=all-minilm:33m
-    command: ["./init-ollama.sh"]
-
   streamlit:
     build:
       context: .
@@ -68,21 +28,19 @@ services:
     volumes:
       - .:/app
     depends_on:
-      init-ollama:
-        condition: service_completed_successfully
       pinecone-local:
         condition: service_healthy
     networks:
       - rag_network
     restart: unless-stopped
     environment:
-      - OLLAMA_HOST=http://ollama:11434
+      # OLLAMA_HOST should point to your host machine where Ollama is running natively
+      # For Docker Desktop (macOS/Windows), use 'host.docker.internal'
+      # For Linux, you might need to find your host's IP address or use '172.17.0.1' (Docker bridge IP)
+      - OLLAMA_HOST=http://host.docker.internal:11434
       - PINECONE_HOST=http://pinecone-local:5081
       - PINECONE_API_KEY=pclocal
     command: streamlit run app.py
-
-volumes:
-  ollama_data:
 
 networks:
   rag_network:
