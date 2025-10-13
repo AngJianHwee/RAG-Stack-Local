@@ -149,16 +149,21 @@ def main_page():
             chunks = text_splitter.split_text(user_text)
             st.info(f"Text split into {len(chunks)} chunks.")
 
+            # Generate a single UUID for the entire document
+            import uuid
+            document_uuid = str(uuid.uuid4())
+            current_time = datetime.now().isoformat() # Get current time for insert date
+
             for i, chunk in enumerate(chunks):
                 with st.spinner(f"Getting embedding for chunk {i+1}/{len(chunks)} from Ollama..."):
                     embedding = get_ollama_embedding(chunk)
                 
                 if embedding:
-                    unique_id = f"{st.session_state['user_id']}-{str(time.time())}-{i}" # Unique ID for each chunk, prefixed with user_id
-                    current_time = datetime.now().isoformat() # Get current time for insert date
+                    # Use a unique ID for each chunk, but share the document_uuid for original_text_id
+                    unique_chunk_id = f"{st.session_state['user_id']}-{document_uuid}-{i}" 
                     try:
-                        rag_index.upsert(vectors=[{"id": unique_id, "values": embedding, "metadata": {"text": chunk, "original_text_id": str(time.time()), "user_id": st.session_state["user_id"], "insert_date": current_time}}])
-                        st.success(f"Chunk {i+1} embedded and stored in Pinecone with ID: {unique_id}")
+                        rag_index.upsert(vectors=[{"id": unique_chunk_id, "values": embedding, "metadata": {"text": chunk, "original_text_id": document_uuid, "user_id": st.session_state["user_id"], "insert_date": current_time}}])
+                        st.success(f"Chunk {i+1} embedded and stored in Pinecone with ID: {unique_chunk_id}")
                     except Exception as e:
                         st.error(f"Error storing embedding for chunk {i+1} in Pinecone: {e}")
                 else:
@@ -385,7 +390,7 @@ def admin_page():
                     if embedding_id in st.session_state["selected_embeddings"]:
                         st.session_state["selected_embeddings"].remove(embedding_id)
             
-            st.checkbox("", key=checkbox_key, value=(match.id in st.session_state["selected_embeddings"]), on_change=on_checkbox_change, args=(match.id,))
+            st.checkbox(" ", key=checkbox_key, value=(match.id in st.session_state["selected_embeddings"]), on_change=on_checkbox_change, args=(match.id,), label_visibility="hidden")
         with col_content:
             st.markdown(f"**ID:** `{match.id}`")
             st.markdown(f"**Text:** {match.metadata.get('text', 'N/A')}")
