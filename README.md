@@ -71,5 +71,11 @@ You can now interact with the Streamlit application to:
 
 ## Project Structure
 
-*   `requirements.txt`: Lists the Python dependencies for the Streamlit application.
-*   `app.py`: The main Streamlit application script.
+*   `requirements.txt`: Lists the Python dependencies for the Streamlit application, including `langchain`.
+*   `app.py`: The main Streamlit application script, now with enhanced text chunking options.
+
+## New Features
+
+### Advanced Text Chunking
+
+The application now includes advanced text chunking options using `langchain.text_splitter.RecursiveCharacterTextSplitter`. You can adjust the `Chunk Size` and `Chunk Overlap` using sliders in the sidebar to optimize how your documents are split before embedding and storage. This allows for more granular control over the RAG process, potentially improving retrieval quality.

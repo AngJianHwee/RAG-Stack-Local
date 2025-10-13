@@ -3,6 +3,7 @@ import requests
 from pinecone.grpc import PineconeGRPC
 from pinecone import ServerlessSpec
 import time
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # Configuration for Ollama and Pinecone Local
 OLLAMA_EMBEDDING_URL = "http://localhost:11434/api/embeddings"
@@ -47,20 +48,38 @@ def get_ollama_embedding(text):
 
 st.title("Streamlit RAG with Ollama and Pinecone Local")
 
+# Chunking options
+st.sidebar.header("Chunking Options")
+chunk_size = st.sidebar.slider("Chunk Size", min_value=100, max_value=2000, value=500, step=50)
+chunk_overlap = st.sidebar.slider("Chunk Overlap", min_value=0, max_value=chunk_size - 1, value=50, step=10)
+
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=chunk_size,
+    chunk_overlap=chunk_overlap,
+    length_function=len,
+    is_separator_regex=False,
+)
+
 user_text = st.text_area("Enter text to embed and store:", height=150)
 
 if st.button("Store Embedding"):
     if user_text:
-        with st.spinner("Getting embedding from Ollama..."):
-            embedding = get_ollama_embedding(user_text)
-        
-        if embedding:
-            unique_id = str(time.time()) # Simple unique ID
-            try:
-                index.upsert(vectors=[{"id": unique_id, "values": embedding, "metadata": {"text": user_text}}])
-                st.success(f"Text embedded and stored in Pinecone with ID: {unique_id}")
-            except Exception as e:
-                st.error(f"Error storing embedding in Pinecone: {e}")
+        chunks = text_splitter.split_text(user_text)
+        st.info(f"Text split into {len(chunks)} chunks.")
+
+        for i, chunk in enumerate(chunks):
+            with st.spinner(f"Getting embedding for chunk {i+1}/{len(chunks)} from Ollama..."):
+                embedding = get_ollama_embedding(chunk)
+            
+            if embedding:
+                unique_id = f"{str(time.time())}-{i}" # Unique ID for each chunk
+                try:
+                    index.upsert(vectors=[{"id": unique_id, "values": embedding, "metadata": {"text": chunk, "original_text_id": str(time.time())}}])
+                    st.success(f"Chunk {i+1} embedded and stored in Pinecone with ID: {unique_id}")
+                except Exception as e:
+                    st.error(f"Error storing embedding for chunk {i+1} in Pinecone: {e}")
+            else:
+                st.error(f"Could not get embedding for chunk {i+1}. Skipping.")
     else:
         st.warning("Please enter some text to store.")
 
