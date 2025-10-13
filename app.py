@@ -36,7 +36,16 @@ def login_page():
     if st.button("Register"):
         if new_username and new_password:
             if add_user(new_username, new_password):
-                st.success("User registered successfully! Please log in.")
+                st.success("User registered successfully! Logging in...")
+                # Auto-login the newly registered user
+                user_data = get_user_by_username(new_username)
+                if user_data:
+                    st.session_state["logged_in"] = True
+                    st.session_state["username"] = new_username
+                    st.session_state["user_id"] = user_data["user_id"]
+                    st.rerun()
+                else:
+                    st.error("Error retrieving user data after registration. Please try logging in manually.")
             # Error messages are handled within add_user
         else:
             st.error("Please enter both username and password for registration.")
