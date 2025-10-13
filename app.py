@@ -13,7 +13,7 @@ DIMENSION = 384 # Dimension for all-minilm:33m
 
 # Initialize Pinecone
 try:
-    pc = PineconeGRPC(api_key=PINECONE_API_KEY, host=PINECONE_HOST, ssl_verify=False
+    pc = PineconeGRPC(api_key=PINECONE_API_KEY, host=PINECONE_HOST, ssl_verify=False)
     if not pc.has_index(INDEX_NAME):
         pc.create_index(
             name=INDEX_NAME,
