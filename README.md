@@ -47,7 +47,7 @@ docker run -d \
 
 ### 3. Build the Streamlit Application Docker Image
 
-Navigate to the root directory of this project (where `Dockerfile`, `app.py`, and `requirements.txt` are located) and build the Streamlit app's Docker image:
+Navigate to the root directory of this project (where `Dockerfile`, `app.py`, and `requirements.txt` are located) and build the Streamlit app's Docker image. Note that `requirements.txt` now includes `pinecone[grpc]` for the gRPC client.
 
 ```bash
 docker build -t streamlit-rag-app .
@@ -55,7 +55,7 @@ docker build -t streamlit-rag-app .
 
 ### 4. Run the Streamlit Application Docker Container
 
-Run the Streamlit container, ensuring it's on the same Docker network as Ollama and Pinecone Local so they can communicate. By default, Docker containers run on the `bridge` network if not specified.
+Run the Streamlit container, ensuring it's on the same Docker network as Ollama and Pinecone Local so they can communicate. The Streamlit app connects to Pinecone Local using the service name `pinecone-local` within the Docker network. By default, Docker containers run on the `bridge` network if not specified.
 
 ```bash
 docker run -d -p 8501:8501 --name streamlit-app --network bridge streamlit-rag-app
