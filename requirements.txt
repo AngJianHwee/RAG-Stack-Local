@@ -1,5 +1,5 @@
 streamlit
 requests
-pinecone-client[grpc]
+pinecone[grpc]
 langchain
 bcrypt
