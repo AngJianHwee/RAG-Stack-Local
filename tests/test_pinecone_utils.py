@@ -3,6 +3,10 @@ from unittest.mock import patch, MagicMock
 import sys
 import os
 
+# Mock the Streamlit st object
+st = MagicMock()
+sys.modules['streamlit'] = st
+
 # Add the parent directory to the sys.path to allow importing pinecone_utils
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -12,10 +16,6 @@ from pinecone_utils import (
     get_all_users_from_pinecone_index, get_user_embeddings, delete_embeddings,
     DIMENSION, RAG_INDEX_NAME, USER_INDEX_NAME
 )
-
-# Mock the Streamlit st object
-st = MagicMock()
-sys.modules['streamlit'] = st
 
 @pytest.fixture
 def mock_pinecone_grpc():

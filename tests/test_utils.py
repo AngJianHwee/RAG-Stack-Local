@@ -2,17 +2,18 @@ import pytest
 from unittest.mock import patch, MagicMock
 import sys
 import os
+import requests # Import requests here
+
+# Mock the Streamlit st object to prevent errors during testing
+# This is a common pattern when testing Streamlit apps without running the app
+st = MagicMock()
+sys.modules['streamlit'] = st
 
 # Add the parent directory to the sys.path to allow importing utils
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utils import hash_password, check_password, get_ollama_embedding, get_next_user_id, add_user, get_user_by_username
 from pinecone_utils import initialize_pinecone_user_index, get_all_users_from_pinecone_index, add_user_to_pinecone_index, get_user_from_pinecone_index
-
-# Mock the Streamlit st object to prevent errors during testing
-# This is a common pattern when testing Streamlit apps without running the app
-st = MagicMock()
-sys.modules['streamlit'] = st
 
 # Mock the user_index from utils.py
 @pytest.fixture(autouse=True)
