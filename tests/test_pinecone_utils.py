@@ -2,6 +2,10 @@ import pytest
 from unittest.mock import patch, MagicMock
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load test environment variables
+load_dotenv(dotenv_path='tests/.env.test', override=True)
 
 # Mock the Streamlit st object
 st = MagicMock()

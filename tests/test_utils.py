@@ -3,6 +3,10 @@ from unittest.mock import patch, MagicMock
 import sys
 import os
 import requests # Import requests here
+from dotenv import load_dotenv
+
+# Load test environment variables
+load_dotenv(dotenv_path='tests/.env.test', override=True)
 
 # Mock the Streamlit st object to prevent errors during testing
 # This is a common pattern when testing Streamlit apps without running the app

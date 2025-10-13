@@ -64,10 +64,10 @@ streamlit run app.py
 
 ## Configuration
 
-This project uses environment variables for sensitive information and configurable parameters, loaded from a `.env` file.
+This project uses environment variables for sensitive information and configurable parameters.
 
-1.  **Create `.env` file:** In the root directory of the project, create a file named `.env`.
-2.  **Add variables:** Populate the `.env` file with the following key-value pairs:
+1.  **Create `.env` file:** In the root directory of the project, create a file named `.env`. This file will be used for the main application.
+2.  **Add variables to `.env`:** Populate the `.env` file with the following key-value pairs:
 
     ```
     PINECONE_API_KEY="pclocal"
@@ -83,6 +83,18 @@ This project uses environment variables for sensitive information and configurab
     *   `USER_INDEX_NAME`: The name of the Pinecone index for user credentials.
     *   `DIMENSION`: The dimension of the embeddings (e.g., 384 for `all-minilm:33m`).
     *   `OLLAMA_EMBEDDING_URL`: The URL for the Ollama embedding service.
+
+3.  **Create `tests/.env.test` file:** For testing purposes, create a file named `.env.test` inside the `tests/` directory. This file will override the main `.env` variables during test execution.
+4.  **Add variables to `tests/.env.test`:** Populate `tests/.env.test` with test-specific values. For unit tests where Pinecone and Ollama are mocked, these can be dummy values:
+
+    ```
+    PINECONE_API_KEY="test_pclocal"
+    PINECONE_HOST="http://test-localhost:5081"
+    RAG_INDEX_NAME="test-rag-index"
+    USER_INDEX_NAME="test-user-index"
+    DIMENSION=384
+    OLLAMA_EMBEDDING_URL="http://test-localhost:11434/api/embeddings"
+    ```
 
 ## Testing
 
@@ -134,6 +146,6 @@ pytest
 ## Important Notes
 
 *   Ensure Ollama and Pinecone Local are running before starting the Streamlit application.
-*   All configuration parameters are loaded from the `.env` file. Make sure it's correctly set up.
+*   Configuration parameters are loaded from `.env` for the main application and `tests/.env.test` for unit tests. Ensure these files are correctly set up.
 *   User credentials (username, hashed password, user ID) are now stored in a dedicated Pinecone index (`user-index`). For a production environment, a more robust database solution with advanced security features would be recommended.
 *   All stored RAG embeddings are filtered by the logged-in `user_id`, ensuring that users only interact with their own data.
