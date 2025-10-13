@@ -5,9 +5,9 @@ from pinecone import ServerlessSpec
 import time
 
 # Configuration for Ollama and Pinecone Local
-OLLAMA_EMBEDDING_URL = "localhost:11434/api/embeddings"
+OLLAMA_EMBEDDING_URL = "http://localhost:11434/api/embeddings"
 PINECONE_API_KEY = "pclocal" # Pinecone local doesn't strictly need a key, but the client requires it
-PINECONE_HOST = "localhost:5081"
+PINECONE_HOST = "http://localhost:5081"
 INDEX_NAME = "index1"
 DIMENSION = 384 # Dimension for all-minilm:33m
 
