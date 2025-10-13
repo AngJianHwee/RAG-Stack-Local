@@ -153,10 +153,7 @@ def admin_page():
 
     user_id = st.session_state["user_id"]
     
-    st.subheader("Filter Embeddings")
-    search_term = st.text_input("Search by text content or ID:")
-
-    st.subheader("Your Stored Embeddings")
+    st.subheader("Manage Your Stored Embeddings")
 
     embeddings = get_user_embeddings(index, user_id)
     
@@ -167,44 +164,111 @@ def admin_page():
     # Sort embeddings by insert_date (newest first)
     embeddings.sort(key=lambda x: x.metadata.get("insert_date", ""), reverse=True)
 
-    # Filter embeddings based on search_term
-    filtered_embeddings = []
-    if search_term:
-        search_term_lower = search_term.lower()
+    # Initialize session state for filters and pagination if not present
+    if "filter_criteria" not in st.session_state:
+        st.session_state["filter_criteria"] = "Text Content"
+    if "search_term" not in st.session_state:
+        st.session_state["search_term"] = ""
+    if "items_per_page" not in st.session_state:
+        st.session_state["items_per_page"] = 10
+    if "current_page" not in st.session_state:
+        st.session_state["current_page"] = 1
+
+    # Filter and pagination controls within a form
+    with st.form("filter_pagination_form"):
+        col_filter_type, col_search_term = st.columns([0.4, 0.6])
+        with col_filter_type:
+            st.session_state["filter_criteria"] = st.selectbox(
+                "Filter by",
+                options=["Text Content", "ID", "Original Text ID", "Insert Date"],
+                key="filter_criteria_select"
+            )
+        with col_search_term:
+            st.session_state["search_term"] = st.text_input(
+                "Search term",
+                value=st.session_state["search_term"],
+                key="search_term_input"
+            )
+        
+        st.session_state["items_per_page"] = st.selectbox(
+            "Embeddings per page",
+            options=[5, 10, 20, 50],
+            index=[5, 10, 20, 50].index(st.session_state["items_per_page"]),
+            key="items_per_page_select"
+        )
+
+        update_button = st.form_submit_button("Apply Filters & Pagination")
+
+    # Apply filters and pagination only when update_button is clicked or on initial load
+    if update_button:
+        st.session_state["current_page"] = 1 # Reset page on filter/pagination change
+        # Filtering logic
+        filtered_embeddings = []
+        search_term_lower = st.session_state["search_term"].lower()
         for match in embeddings:
-            text_content = match.metadata.get("text", "").lower()
-            original_text_id = match.metadata.get("original_text_id", "").lower()
-            insert_date = match.metadata.get("insert_date", "").lower()
-            if search_term_lower in text_content or search_term_lower in original_text_id or search_term_lower in match.id.lower() or search_term_lower in insert_date:
+            metadata_value = ""
+            if st.session_state["filter_criteria"] == "Text Content":
+                metadata_value = match.metadata.get("text", "").lower()
+            elif st.session_state["filter_criteria"] == "ID":
+                metadata_value = match.id.lower()
+            elif st.session_state["filter_criteria"] == "Original Text ID":
+                metadata_value = match.metadata.get("original_text_id", "").lower()
+            elif st.session_state["filter_criteria"] == "Insert Date":
+                metadata_value = match.metadata.get("insert_date", "").lower()
+            
+            if search_term_lower in metadata_value:
                 filtered_embeddings.append(match)
-    else:
-        filtered_embeddings = embeddings
+        st.session_state["filtered_embeddings"] = filtered_embeddings
+    elif "filtered_embeddings" not in st.session_state:
+        st.session_state["filtered_embeddings"] = embeddings # Initial load
+
+    filtered_embeddings = st.session_state["filtered_embeddings"]
 
     if not filtered_embeddings:
         st.info("No embeddings match your search criteria.")
         return
 
-    # Pagination setup
-    items_per_page = st.slider("Embeddings per page", min_value=5, max_value=50, value=10, step=5)
-    total_pages = (len(filtered_embeddings) + items_per_page - 1) // items_per_page
-
-    if "current_page" not in st.session_state:
+    total_pages = (len(filtered_embeddings) + st.session_state["items_per_page"] - 1) // st.session_state["items_per_page"]
+    
+    # Ensure current_page is valid
+    if st.session_state["current_page"] > total_pages and total_pages > 0:
+        st.session_state["current_page"] = total_pages
+    elif st.session_state["current_page"] == 0 and total_pages > 0:
         st.session_state["current_page"] = 1
+    elif total_pages == 0:
+        st.session_state["current_page"] = 0
 
-    col_prev, col_page_info, col_next = st.columns([1, 2, 1])
-    with col_prev:
-        if st.button("Previous Page", disabled=(st.session_state["current_page"] == 1)):
+
+    # Pagination controls
+    st.write(f"Page {st.session_state['current_page']} of {total_pages}")
+    
+    col_page_buttons = st.columns([0.1, 0.1, 0.6, 0.1, 0.1]) # Adjust column widths for page numbers
+    with col_page_buttons[0]:
+        if st.button("Prev", key="prev_page_button", disabled=(st.session_state["current_page"] <= 1)):
             st.session_state["current_page"] -= 1
             st.rerun()
-    with col_page_info:
-        st.write(f"Page {st.session_state['current_page']} of {total_pages}")
-    with col_next:
-        if st.button("Next Page", disabled=(st.session_state["current_page"] == total_pages)):
+    
+    # Individual page number buttons
+    page_numbers_to_display = 5 # Number of page buttons to show
+    start_page = max(1, st.session_state["current_page"] - page_numbers_to_display // 2)
+    end_page = min(total_pages, start_page + page_numbers_to_display - 1)
+    
+    if end_page - start_page + 1 < page_numbers_to_display:
+        start_page = max(1, end_page - page_numbers_to_display + 1)
+
+    for p_num in range(start_page, end_page + 1):
+        with col_page_buttons[2]: # Use the middle column for page numbers
+            if st.button(str(p_num), key=f"page_button_{p_num}", type="primary" if p_num == st.session_state["current_page"] else "secondary"):
+                st.session_state["current_page"] = p_num
+                st.rerun()
+
+    with col_page_buttons[4]:
+        if st.button("Next", key="next_page_button", disabled=(st.session_state["current_page"] >= total_pages)):
             st.session_state["current_page"] += 1
             st.rerun()
 
-    start_idx = (st.session_state["current_page"] - 1) * items_per_page
-    end_idx = start_idx + items_per_page
+    start_idx = (st.session_state["current_page"] - 1) * st.session_state["items_per_page"]
+    end_idx = start_idx + st.session_state["items_per_page"]
     paginated_embeddings = filtered_embeddings[start_idx:end_idx]
 
     st.write(f"Displaying {len(paginated_embeddings)} embeddings on this page ({len(filtered_embeddings)} total filtered, {len(embeddings)} total stored).")
@@ -224,29 +288,43 @@ def admin_page():
                 st.warning("No embeddings selected for deletion.")
 
     # Display embeddings with checkboxes and individual delete buttons
-    selected_for_deletion = []
     for i, match in enumerate(paginated_embeddings):
-        with st.container(border=True): # Use st.container for card-like style
-            col_checkbox, col_content, col_delete_individual = st.columns([0.1, 0.7, 0.2])
-            with col_checkbox:
-                checkbox_key = f"checkbox_{match.id}"
-                if st.checkbox("", key=checkbox_key):
-                    selected_for_deletion.append(match.id)
-            with col_content:
-                st.markdown(f"**ID:** `{match.id}`")
-                st.markdown(f"**Text:** {match.metadata.get('text', 'N/A')}")
-                st.markdown(f"**Original Text ID:** `{match.metadata.get('original_text_id', 'N/A')}`")
-                st.markdown(f"**Insert Date:** `{match.metadata.get('insert_date', 'N/A')}`")
-            with col_delete_individual:
-                if st.button("Delete", key=f"delete_individual_{match.id}", type="primary"):
-                    with st.spinner(f"Deleting embedding {match.id}..."):
-                        if delete_embeddings(index, [match.id], user_id):
-                            st.success(f"Embedding {match.id} deleted successfully!")
-                            st.rerun()
-                        else:
-                            st.error(f"Failed to delete embedding {match.id}.")
+        is_selected = match.id in st.session_state["selected_embeddings"]
+        card_style = "background-color: #e6f7ff;" if is_selected else "" # Light blue for selected
+        
+        st.markdown(f"<div style='{card_style} border: 1px solid #ccc; border-radius: 5px; padding: 10px; margin-bottom: 10px;'>", unsafe_allow_html=True)
+        col_checkbox, col_content, col_delete_individual = st.columns([0.1, 0.7, 0.2])
+        with col_checkbox:
+            checkbox_key = f"checkbox_{match.id}"
+            # Use a callback to update session state directly
+            def on_checkbox_change(embedding_id):
+                if st.session_state[f"checkbox_{embedding_id}"]:
+                    if embedding_id not in st.session_state["selected_embeddings"]:
+                        st.session_state["selected_embeddings"].append(embedding_id)
+                else:
+                    if embedding_id in st.session_state["selected_embeddings"]:
+                        st.session_state["selected_embeddings"].remove(embedding_id)
+            
+            st.checkbox("", key=checkbox_key, value=is_selected, on_change=on_checkbox_change, args=(match.id,))
+        with col_content:
+            st.markdown(f"**ID:** `{match.id}`")
+            st.markdown(f"**Text:** {match.metadata.get('text', 'N/A')}")
+            st.markdown(f"**Original Text ID:** `{match.metadata.get('original_text_id', 'N/A')}`")
+            st.markdown(f"**Insert Date:** `{match.metadata.get('insert_date', 'N/A')}`")
+        with col_delete_individual:
+            if st.button("Delete", key=f"delete_individual_{match.id}", type="primary"):
+                with st.spinner(f"Deleting embedding {match.id}..."):
+                    if delete_embeddings(index, [match.id], user_id):
+                        # Remove from selected_embeddings if it was selected
+                        if match.id in st.session_state["selected_embeddings"]:
+                            st.session_state["selected_embeddings"].remove(match.id)
+                        st.success(f"Embedding {match.id} deleted successfully!")
+                        st.rerun()
+                    else:
+                        st.error(f"Failed to delete embedding {match.id}.")
+        st.markdown("</div>", unsafe_allow_html=True) # Close the div for card style
     
-    st.session_state["selected_embeddings"] = selected_for_deletion
+    # No need to reassign selected_embeddings here, it's updated by callbacks
 
     # Batch delete button at the bottom
     with st.form("delete_embeddings_form_bottom"):

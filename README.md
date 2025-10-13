@@ -12,11 +12,10 @@ This project demonstrates a Retrieval-Augmented Generation (RAG) system using St
 *   **Advanced Text Chunking:** Configurable `Chunk Size` and `Chunk Overlap` using `langchain.text_splitter.RecursiveCharacterTextSplitter`.
 *   **Admin Page:** A dedicated page for users to view, filter, paginate, and manage their stored embeddings. Features include:
     *   Viewing embeddings with their ID, text content, original text ID, and insert date.
-    *   Filtering embeddings by text content, ID, or insert date.
-    *   Pagination to browse through large sets of embeddings.
-    *   Batch deletion of selected embeddings with confirmation buttons at both the top and bottom of the list.
-    *   Individual deletion of embeddings directly next to each entry.
-    *   Improved visual styling for embedding entries.
+    *   **Configurable Filtering:** Filter embeddings by "Text Content", "ID", "Original Text ID", or "Insert Date" using a dropdown and a search input. Filters are applied explicitly via an "Apply Filters & Pagination" button.
+    *   **Advanced Pagination:** Browse through embeddings with a configurable number of items per page (selected via a dropdown), "Previous" and "Next" buttons, and direct page number buttons for quick navigation.
+    *   **Enhanced Deletion:** Batch deletion of selected embeddings with confirmation buttons at both the top and bottom of the list. Individual deletion of embeddings directly next to each entry.
+    *   **Interactive Styling:** Improved visual styling for embedding entries, with selected cards changing color for clear identification.
 
 ## Project Structure
 
@@ -77,12 +76,15 @@ streamlit run app.py
 4.  **Admin Page:**
     *   Click the "Admin Page" button in the sidebar.
     *   On this page, you can view all embeddings associated with your user ID, ordered by their insert date (newest first).
-    *   Use the "Search by text content or ID" input to filter your embeddings by text, ID, or insert date.
-    *   Adjust the "Embeddings per page" slider to control the number of entries displayed.
-    *   Navigate through pages using the "Previous Page" and "Next Page" buttons.
-    *   Each embedding is displayed in a card-like format, showing its ID, text, original text ID, and insert date.
-    *   You can delete individual embeddings using the "Delete" button next to each entry.
-    *   To perform a batch deletion, select multiple embeddings using the checkboxes and then click either the "Delete Selected Embeddings (Top)" or "Delete Selected Embeddings (Bottom)" button.
+    *   **Filtering and Pagination:**
+        *   Select a "Filter by" criterion (e.g., "Text Content", "ID") from the dropdown and enter a "Search term".
+        *   Choose the number of "Embeddings per page" from the dropdown.
+        *   Click the "Apply Filters & Pagination" button to refresh the displayed embeddings based on your selections.
+    *   **Navigation:** Navigate through pages using the "Prev" and "Next" buttons, or click directly on page numbers for fast skipping.
+    *   **Viewing Embeddings:** Each embedding is displayed in a card-like format, showing its ID, text, original text ID, and insert date. Selected embedding cards will change color.
+    *   **Deletion:**
+        *   You can delete individual embeddings using the "Delete" button next to each entry.
+        *   To perform a batch deletion, select multiple embeddings using the checkboxes (selected cards will change color) and then click either the "Delete Selected Embeddings (Top)" or "Delete Selected Embeddings (Bottom)" button.
 5.  **Retrieve Similar Text:**
     *   Enter a query into the "Enter query text to find similar entries:" text area.
     *   Click "Retrieve Similar" to find and display text chunks from *your* stored documents that are semantically similar to the query.
