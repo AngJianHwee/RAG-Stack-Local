@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-from pinecone import Pinecone, Index
+from pinecone import Pinecone
 import time
 
 # Configuration for Ollama and Pinecone Local
