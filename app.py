@@ -1,23 +1,28 @@
 import streamlit as st
 import requests
-from pinecone import Pinecone
+from pinecone.grpc import PineconeGRPC
+from pinecone import ServerlessSpec
 import time
 
 # Configuration for Ollama and Pinecone Local
 OLLAMA_EMBEDDING_URL = "http://ollama:11434/api/embeddings"
-PINECONE_API_KEY = "YOUR_API_KEY" # Pinecone local doesn't strictly need a key, but the client requires it
-PINECONE_HOST = "pinecone-local:5081"
-INDEX_NAME = "my-rag-index"
+PINECONE_API_KEY = "pclocal" # Pinecone local doesn't strictly need a key, but the client requires it
+PINECONE_HOST = "http://localhost:5081"
+INDEX_NAME = "index1"
 DIMENSION = 384 # Dimension for all-minilm:33m
 
 # Initialize Pinecone
 try:
-    pc = Pinecone(api_key=PINECONE_API_KEY, host=PINECONE_HOST)
-    if INDEX_NAME not in pc.list_indexes():
+    pc = PineconeGRPC(api_key=PINECONE_API_KEY, host=PINECONE_HOST)
+    if not pc.has_index(INDEX_NAME):
         pc.create_index(
             name=INDEX_NAME,
             dimension=DIMENSION,
-            metric='cosine'
+            metric="cosine",
+            spec=ServerlessSpec(
+                cloud="aws",
+                region="us-east-1",
+            )
         )
     index = pc.Index(INDEX_NAME)
     st.success(f"Connected to Pinecone index: {INDEX_NAME}")
