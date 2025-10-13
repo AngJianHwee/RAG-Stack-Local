@@ -62,6 +62,26 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+## Testing
+
+Unit tests are provided for `utils.py` and `pinecone_utils.py` to ensure the core logic functions as expected.
+
+### 1. Install Test Dependencies
+
+Ensure `pytest` and `pytest-mock` are installed (they are included in `requirements.txt`):
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Run Tests
+
+Navigate to the project root directory and run `pytest`:
+
+```bash
+pytest
+```
+
 ## Usage
 
 1.  **Access the Application:** Open your web browser and navigate to the URL provided by Streamlit (usually `http://localhost:8501`).

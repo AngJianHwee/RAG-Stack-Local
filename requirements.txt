@@ -3,3 +3,5 @@ requests
 pinecone[grpc]
 langchain
 bcrypt
+pytest
+pytest-mock
