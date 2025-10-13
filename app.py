@@ -3,11 +3,12 @@ import time
 from datetime import datetime # Import datetime
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from utils import load_users, save_users, hash_password, check_password, get_ollama_embedding
-from pinecone_utils import initialize_pinecone, get_user_embeddings, delete_embeddings
+from utils import hash_password, check_password, get_ollama_embedding, add_user, get_user_by_username
+from pinecone_utils import initialize_pinecone_rag_index, get_user_embeddings, delete_embeddings
 
-# Initialize Pinecone
-index = initialize_pinecone()
+# Initialize Pinecone RAG Index
+rag_index = initialize_pinecone_rag_index()
+# The user_index is initialized in utils.py
 
 if "selected_embeddings" not in st.session_state:
     st.session_state["selected_embeddings"] = []
@@ -19,16 +20,13 @@ def login_page():
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        users = load_users()
-        user_found = False
-        for user in users:
-            if user["username"] == username and check_password(password, user["password"]):
-                st.session_state["logged_in"] = True
-                st.session_state["username"] = username
-                st.session_state["user_id"] = user["user_id"] # Store user_id in session state
-                user_found = True
-                st.rerun()
-        if not user_found:
+        user_data = get_user_by_username(username)
+        if user_data and check_password(password, user_data["password"]):
+            st.session_state["logged_in"] = True
+            st.session_state["username"] = username
+            st.session_state["user_id"] = user_data["user_id"] # Store user_id in session state
+            st.rerun()
+        else:
             st.error("Invalid username or password")
 
     st.subheader("Register New User")
@@ -37,15 +35,9 @@ def login_page():
     
     if st.button("Register"):
         if new_username and new_password:
-            users = load_users()
-            if any(user["username"] == new_username for user in users):
-                st.error("Username already exists.")
-            else:
-                hashed_pw = hash_password(new_password)
-                new_user_id = str(len(users) + 1) # Simple incremental ID
-                users.append({"username": new_username, "password": hashed_pw, "user_id": new_user_id})
-                save_users(users)
+            if add_user(new_username, new_password):
                 st.success("User registered successfully! Please log in.")
+            # Error messages are handled within add_user
         else:
             st.error("Please enter both username and password for registration.")
 
@@ -68,8 +60,8 @@ def main_page():
 
     st.title("Streamlit RAG with Ollama and Pinecone Local")
 
-    if index is None:
-        st.error("Pinecone index not initialized. Please check the connection.")
+    if rag_index is None:
+        st.error("Pinecone RAG index not initialized. Please check the connection.")
         return
 
     # Chunking options
@@ -99,7 +91,7 @@ def main_page():
                     unique_id = f"{st.session_state['user_id']}-{str(time.time())}-{i}" # Unique ID for each chunk, prefixed with user_id
                     current_time = datetime.now().isoformat() # Get current time for insert date
                     try:
-                        index.upsert(vectors=[{"id": unique_id, "values": embedding, "metadata": {"text": chunk, "original_text_id": str(time.time()), "user_id": st.session_state["user_id"], "insert_date": current_time}}])
+                        rag_index.upsert(vectors=[{"id": unique_id, "values": embedding, "metadata": {"text": chunk, "original_text_id": str(time.time()), "user_id": st.session_state["user_id"], "insert_date": current_time}}])
                         st.success(f"Chunk {i+1} embedded and stored in Pinecone with ID: {unique_id}")
                     except Exception as e:
                         st.error(f"Error storing embedding for chunk {i+1} in Pinecone: {e}")
@@ -118,7 +110,7 @@ def main_page():
             
             if query_embedding:
                 try:
-                    results = index.query(
+                    results = rag_index.query(
                         vector=query_embedding,
                         top_k=5,
                         include_metadata=True,
@@ -147,15 +139,15 @@ def admin_page():
 
     st.title("Admin Page - Your Embeddings")
 
-    if index is None:
-        st.error("Pinecone index not initialized. Please check the connection.")
+    if rag_index is None:
+        st.error("Pinecone RAG index not initialized. Please check the connection.")
         return
 
     user_id = st.session_state["user_id"]
     
     st.subheader("Manage Your Stored Embeddings")
 
-    embeddings = get_user_embeddings(index, user_id)
+    embeddings = get_user_embeddings(rag_index, user_id)
     
     if not embeddings:
         st.info("No embeddings found for your account.")
@@ -278,7 +270,7 @@ def admin_page():
         if st.form_submit_button("Delete Selected Embeddings (Top)", type="primary"):
             if st.session_state["selected_embeddings"]:
                 with st.spinner("Deleting selected embeddings..."):
-                    if delete_embeddings(index, st.session_state["selected_embeddings"], user_id):
+                    if delete_embeddings(rag_index, st.session_state["selected_embeddings"], user_id):
                         st.success("Selected embeddings deleted successfully!")
                         st.session_state["selected_embeddings"] = [] # Clear selection
                         st.rerun() # Rerun to refresh the list
@@ -314,7 +306,7 @@ def admin_page():
         with col_delete_individual:
             if st.button("Delete", key=f"delete_individual_{match.id}", type="primary"):
                 with st.spinner(f"Deleting embedding {match.id}..."):
-                    if delete_embeddings(index, [match.id], user_id):
+                    if delete_embeddings(rag_index, [match.id], user_id):
                         # Remove from selected_embeddings if it was selected
                         if match.id in st.session_state["selected_embeddings"]:
                             st.session_state["selected_embeddings"].remove(match.id)
@@ -331,7 +323,7 @@ def admin_page():
         if st.form_submit_button("Delete Selected Embeddings (Bottom)", type="primary"):
             if st.session_state["selected_embeddings"]:
                 with st.spinner("Deleting selected embeddings..."):
-                    if delete_embeddings(index, st.session_state["selected_embeddings"], user_id):
+                    if delete_embeddings(rag_index, st.session_state["selected_embeddings"], user_id):
                         st.success("Selected embeddings deleted successfully!")
                         st.session_state["selected_embeddings"] = [] # Clear selection
                         st.rerun() # Rerun to refresh the list

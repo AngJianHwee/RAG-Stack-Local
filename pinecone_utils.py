@@ -5,15 +5,16 @@ from pinecone import ServerlessSpec
 # Configuration for Pinecone Local
 PINECONE_API_KEY = "pclocal" # Pinecone local doesn't strictly need a key, but the client requires it
 PINECONE_HOST = "http://localhost:5081"
-INDEX_NAME = "index1"
+RAG_INDEX_NAME = "rag-index"
+USER_INDEX_NAME = "user-index"
 DIMENSION = 384 # Dimension for all-minilm:33m
 
-def initialize_pinecone():
+def initialize_pinecone_rag_index():
     try:
         pc = PineconeGRPC(api_key=PINECONE_API_KEY, host=PINECONE_HOST, ssl_verify=False)
-        if not pc.has_index(INDEX_NAME):
+        if not pc.has_index(RAG_INDEX_NAME):
             pc.create_index(
-                name=INDEX_NAME,
+                name=RAG_INDEX_NAME,
                 dimension=DIMENSION,
                 metric="cosine",
                 spec=ServerlessSpec(
@@ -21,13 +22,74 @@ def initialize_pinecone():
                     region="us-east-1",
                 )
             )
-        index = pc.Index(INDEX_NAME)
-        st.success(f"Connected to Pinecone index: {INDEX_NAME}")
+        index = pc.Index(RAG_INDEX_NAME)
+        st.success(f"Connected to Pinecone RAG index: {RAG_INDEX_NAME}")
         return index
     except Exception as e:
-        st.error(f"Error connecting to Pinecone: {e}")
+        st.error(f"Error connecting to Pinecone RAG index: {e}")
         st.stop()
         return None
+
+def initialize_pinecone_user_index():
+    try:
+        pc = PineconeGRPC(api_key=PINECONE_API_KEY, host=PINECONE_HOST, ssl_verify=False)
+        if not pc.has_index(USER_INDEX_NAME):
+            pc.create_index(
+                name=USER_INDEX_NAME,
+                dimension=DIMENSION, # Using same dimension for dummy vectors
+                metric="cosine",
+                spec=ServerlessSpec(
+                    cloud="aws",
+                    region="us-east-1",
+                )
+            )
+        index = pc.Index(USER_INDEX_NAME)
+        st.success(f"Connected to Pinecone User index: {USER_INDEX_NAME}")
+        return index
+    except Exception as e:
+        st.error(f"Error connecting to Pinecone User index: {e}")
+        st.stop()
+        return None
+
+def add_user_to_pinecone_index(user_index, username, hashed_password, user_id):
+    try:
+        # Store user data with a dummy vector, actual data in metadata
+        user_index.upsert(vectors=[
+            {"id": user_id, "values": [0.0] * DIMENSION, "metadata": {"username": username, "password": hashed_password, "user_id": user_id}}
+        ])
+        return True
+    except Exception as e:
+        st.error(f"Error adding user to Pinecone: {e}")
+        return False
+
+def get_user_from_pinecone_index(user_index, username):
+    try:
+        # Query with a filter to find the user by username
+        results = user_index.query(
+            vector=[0.0] * DIMENSION, # Dummy vector
+            top_k=1,
+            include_metadata=True,
+            filter={"username": username}
+        )
+        if results.matches:
+            return results.matches[0].metadata
+        return None
+    except Exception as e:
+        st.error(f"Error retrieving user from Pinecone: {e}")
+        return None
+
+def get_all_users_from_pinecone_index(user_index):
+    try:
+        # To get all users, query with a dummy vector and a high top_k
+        results = user_index.query(
+            vector=[0.0] * DIMENSION,
+            top_k=1000, # Assuming max 1000 users for now
+            include_metadata=True
+        )
+        return [match.metadata for match in results.matches]
+    except Exception as e:
+        st.error(f"Error retrieving all users from Pinecone: {e}")
+        return []
 
 def get_user_embeddings(index, user_id):
     try:

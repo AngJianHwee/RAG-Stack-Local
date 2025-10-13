@@ -21,9 +21,8 @@ This project demonstrates a Retrieval-Augmented Generation (RAG) system using St
 
 *   `app.py`: The main Streamlit application, handling UI, session management, and orchestrating calls to utility functions.
 *   `utils.py`: Contains utility functions for user management (loading/saving users, password hashing) and Ollama embedding generation.
-*   `pinecone_utils.py`: Encapsulates Pinecone initialization and interaction logic.
+*   `pinecone_utils.py`: Encapsulates Pinecone initialization and interaction logic for both RAG embeddings and user credentials.
 *   `requirements.txt`: Lists Python dependencies.
-*   `users.json`: Stores user credentials (username, hashed password, user ID).
 *   `README.md`: This documentation.
 
 ## Setup and Installation
@@ -84,7 +83,7 @@ streamlit run app.py
     *   **Viewing Embeddings:** Each embedding is displayed in a card-like format, showing its ID, text, original text ID, and insert date. Selected embedding cards will change color.
     *   **Deletion:**
         *   You can delete individual embeddings using the "Delete" button next to each entry.
-        *   To perform a batch deletion, select multiple embeddings using the checkboxes (selected cards will change color) and then click either the "Delete Selected Embeddings (Top)" or "Delete Selected Embeddings (Bottom)" button.
+        *   To perform a batch deletion, select multiple embeddings using the checkboxes (selected cards will change color) and then click "Delete Selected Embeddings" button.
 5.  **Retrieve Similar Text:**
     *   Enter a query into the "Enter query text to find similar entries:" text area.
     *   Click "Retrieve Similar" to find and display text chunks from *your* stored documents that are semantically similar to the query.
@@ -93,5 +92,5 @@ streamlit run app.py
 ## Important Notes
 
 *   Ensure Ollama and Pinecone Local are running before starting the Streamlit application.
-*   The `users.json` file stores user credentials. For a production environment, a more robust database solution would be recommended.
-*   All stored embeddings are filtered by the logged-in `user_id`, ensuring that users only interact with their own data.
+*   User credentials (username, hashed password, user ID) are now stored in a dedicated Pinecone index (`user-index`). For a production environment, a more robust database solution with advanced security features would be recommended.
+*   All stored RAG embeddings are filtered by the logged-in `user_id`, ensuring that users only interact with their own data.
