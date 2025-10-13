@@ -10,7 +10,13 @@ This project demonstrates a Retrieval-Augmented Generation (RAG) system using St
 *   **Vector Storage:** Stores text embeddings in a local Pinecone instance.
 *   **Semantic Search:** Retrieves similar text chunks based on a query using Pinecone.
 *   **Advanced Text Chunking:** Configurable `Chunk Size` and `Chunk Overlap` using `langchain.text_splitter.RecursiveCharacterTextSplitter`.
-*   **Admin Page:** View, filter, and batch delete your stored embeddings.
+*   **Admin Page:** A dedicated page for users to view, filter, paginate, and manage their stored embeddings. Features include:
+    *   Viewing embeddings with their ID, text content, original text ID, and insert date.
+    *   Filtering embeddings by text content, ID, or insert date.
+    *   Pagination to browse through large sets of embeddings.
+    *   Batch deletion of selected embeddings with confirmation buttons at both the top and bottom of the list.
+    *   Individual deletion of embeddings directly next to each entry.
+    *   Improved visual styling for embedding entries.
 
 ## Project Structure
 
@@ -70,9 +76,13 @@ streamlit run app.py
     *   Click "Store Embedding" to process the text, generate embeddings, and store them in Pinecone, associated with your user ID.
 4.  **Admin Page:**
     *   Click the "Admin Page" button in the sidebar.
-    *   On this page, you can view all embeddings associated with your user ID.
-    *   Use the "Search by text content or ID" input to filter your embeddings.
-    *   Select multiple embeddings using the checkboxes and click "Delete Selected Embeddings" to perform a batch deletion.
+    *   On this page, you can view all embeddings associated with your user ID, ordered by their insert date (newest first).
+    *   Use the "Search by text content or ID" input to filter your embeddings by text, ID, or insert date.
+    *   Adjust the "Embeddings per page" slider to control the number of entries displayed.
+    *   Navigate through pages using the "Previous Page" and "Next Page" buttons.
+    *   Each embedding is displayed in a card-like format, showing its ID, text, original text ID, and insert date.
+    *   You can delete individual embeddings using the "Delete" button next to each entry.
+    *   To perform a batch deletion, select multiple embeddings using the checkboxes and then click either the "Delete Selected Embeddings (Top)" or "Delete Selected Embeddings (Bottom)" button.
 5.  **Retrieve Similar Text:**
     *   Enter a query into the "Enter query text to find similar entries:" text area.
     *   Click "Retrieve Similar" to find and display text chunks from *your* stored documents that are semantically similar to the query.

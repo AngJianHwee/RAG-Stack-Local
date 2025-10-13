@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+from datetime import datetime # Import datetime
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from utils import load_users, save_users, hash_password, check_password, get_ollama_embedding
@@ -96,8 +97,9 @@ def main_page():
                 
                 if embedding:
                     unique_id = f"{st.session_state['user_id']}-{str(time.time())}-{i}" # Unique ID for each chunk, prefixed with user_id
+                    current_time = datetime.now().isoformat() # Get current time for insert date
                     try:
-                        index.upsert(vectors=[{"id": unique_id, "values": embedding, "metadata": {"text": chunk, "original_text_id": str(time.time()), "user_id": st.session_state["user_id"]}}])
+                        index.upsert(vectors=[{"id": unique_id, "values": embedding, "metadata": {"text": chunk, "original_text_id": str(time.time()), "user_id": st.session_state["user_id"], "insert_date": current_time}}])
                         st.success(f"Chunk {i+1} embedded and stored in Pinecone with ID: {unique_id}")
                     except Exception as e:
                         st.error(f"Error storing embedding for chunk {i+1} in Pinecone: {e}")
@@ -162,6 +164,9 @@ def admin_page():
         st.info("No embeddings found for your account.")
         return
 
+    # Sort embeddings by insert_date (newest first)
+    embeddings.sort(key=lambda x: x.metadata.get("insert_date", ""), reverse=True)
+
     # Filter embeddings based on search_term
     filtered_embeddings = []
     if search_term:
@@ -169,7 +174,8 @@ def admin_page():
         for match in embeddings:
             text_content = match.metadata.get("text", "").lower()
             original_text_id = match.metadata.get("original_text_id", "").lower()
-            if search_term_lower in text_content or search_term_lower in original_text_id or search_term_lower in match.id.lower():
+            insert_date = match.metadata.get("insert_date", "").lower()
+            if search_term_lower in text_content or search_term_lower in original_text_id or search_term_lower in match.id.lower() or search_term_lower in insert_date:
                 filtered_embeddings.append(match)
     else:
         filtered_embeddings = embeddings
@@ -178,29 +184,73 @@ def admin_page():
         st.info("No embeddings match your search criteria.")
         return
 
-    # Display embeddings with checkboxes for deletion
-    st.write(f"Displaying {len(filtered_embeddings)} of {len(embeddings)} embeddings.")
+    # Pagination setup
+    items_per_page = st.slider("Embeddings per page", min_value=5, max_value=50, value=10, step=5)
+    total_pages = (len(filtered_embeddings) + items_per_page - 1) // items_per_page
+
+    if "current_page" not in st.session_state:
+        st.session_state["current_page"] = 1
+
+    col_prev, col_page_info, col_next = st.columns([1, 2, 1])
+    with col_prev:
+        if st.button("Previous Page", disabled=(st.session_state["current_page"] == 1)):
+            st.session_state["current_page"] -= 1
+            st.rerun()
+    with col_page_info:
+        st.write(f"Page {st.session_state['current_page']} of {total_pages}")
+    with col_next:
+        if st.button("Next Page", disabled=(st.session_state["current_page"] == total_pages)):
+            st.session_state["current_page"] += 1
+            st.rerun()
+
+    start_idx = (st.session_state["current_page"] - 1) * items_per_page
+    end_idx = start_idx + items_per_page
+    paginated_embeddings = filtered_embeddings[start_idx:end_idx]
+
+    st.write(f"Displaying {len(paginated_embeddings)} embeddings on this page ({len(filtered_embeddings)} total filtered, {len(embeddings)} total stored).")
     
-    # Create a form for batch deletion
-    with st.form("delete_embeddings_form"):
-        selected_for_deletion = []
-        for i, match in enumerate(filtered_embeddings):
-            col1, col2 = st.columns([0.1, 0.9])
-            with col1:
+    # Batch delete button at the top
+    with st.form("delete_embeddings_form_top"):
+        if st.form_submit_button("Delete Selected Embeddings (Top)", type="primary"):
+            if st.session_state["selected_embeddings"]:
+                with st.spinner("Deleting selected embeddings..."):
+                    if delete_embeddings(index, st.session_state["selected_embeddings"], user_id):
+                        st.success("Selected embeddings deleted successfully!")
+                        st.session_state["selected_embeddings"] = [] # Clear selection
+                        st.rerun() # Rerun to refresh the list
+                    else:
+                        st.error("Failed to delete embeddings.")
+            else:
+                st.warning("No embeddings selected for deletion.")
+
+    # Display embeddings with checkboxes and individual delete buttons
+    selected_for_deletion = []
+    for i, match in enumerate(paginated_embeddings):
+        with st.container(border=True): # Use st.container for card-like style
+            col_checkbox, col_content, col_delete_individual = st.columns([0.1, 0.7, 0.2])
+            with col_checkbox:
                 checkbox_key = f"checkbox_{match.id}"
                 if st.checkbox("", key=checkbox_key):
                     selected_for_deletion.append(match.id)
-            with col2:
+            with col_content:
                 st.markdown(f"**ID:** `{match.id}`")
                 st.markdown(f"**Text:** {match.metadata.get('text', 'N/A')}")
                 st.markdown(f"**Original Text ID:** `{match.metadata.get('original_text_id', 'N/A')}`")
-                st.markdown("---")
-        
-        st.session_state["selected_embeddings"] = selected_for_deletion
+                st.markdown(f"**Insert Date:** `{match.metadata.get('insert_date', 'N/A')}`")
+            with col_delete_individual:
+                if st.button("Delete", key=f"delete_individual_{match.id}", type="primary"):
+                    with st.spinner(f"Deleting embedding {match.id}..."):
+                        if delete_embeddings(index, [match.id], user_id):
+                            st.success(f"Embedding {match.id} deleted successfully!")
+                            st.rerun()
+                        else:
+                            st.error(f"Failed to delete embedding {match.id}.")
+    
+    st.session_state["selected_embeddings"] = selected_for_deletion
 
-        delete_button = st.form_submit_button("Delete Selected Embeddings")
-
-        if delete_button:
+    # Batch delete button at the bottom
+    with st.form("delete_embeddings_form_bottom"):
+        if st.form_submit_button("Delete Selected Embeddings (Bottom)", type="primary"):
             if st.session_state["selected_embeddings"]:
                 with st.spinner("Deleting selected embeddings..."):
                     if delete_embeddings(index, st.session_state["selected_embeddings"], user_id):
