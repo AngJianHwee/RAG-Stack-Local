@@ -111,8 +111,10 @@ def get_user_embeddings(index, user_id):
 
 def delete_embeddings(index, ids, user_id):
     try:
-        # Ensure deletion is scoped to the user_id for security
-        index.delete(ids=ids, filter={"user_id": user_id})
+        # The IDs passed here are already filtered by user_id from get_user_embeddings.
+        # Pinecone's delete operation does not allow explicit IDs and a filter simultaneously.
+        # Therefore, we only pass the IDs.
+        index.delete(ids=ids)
         st.success(f"Successfully deleted {len(ids)} embeddings for user {user_id}.")
         return True
     except Exception as e:
