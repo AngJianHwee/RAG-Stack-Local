@@ -8,6 +8,7 @@ from pinecone_utils import initialize_pinecone_user_index, add_user_to_pinecone_
 load_dotenv() # Load environment variables from .env file
 
 OLLAMA_EMBEDDING_URL = os.getenv("OLLAMA_EMBEDDING_URL", "http://localhost:11434/api/embeddings")
+OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "all-minilm:33m") # New environment variable for model selection
 
 # Initialize Pinecone User Index
 user_index = initialize_pinecone_user_index()
@@ -60,7 +61,7 @@ def get_ollama_embedding(text):
     try:
         response = requests.post(
             OLLAMA_EMBEDDING_URL,
-            json={"model": "all-minilm:33m", "prompt": text}
+            json={"model": OLLAMA_EMBEDDING_MODEL, "prompt": text}
         )
         response.raise_for_status()
         return response.json()["embedding"]
