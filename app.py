@@ -1,72 +1,12 @@
 import streamlit as st
-import requests
-from pinecone.grpc import PineconeGRPC
-from pinecone import ServerlessSpec
 import time
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import json
-import bcrypt
 
-# Configuration for Ollama and Pinecone Local
-OLLAMA_EMBEDDING_URL = "http://localhost:11434/api/embeddings"
-USERS_FILE = "users.json"
-PINECONE_API_KEY = "pclocal" # Pinecone local doesn't strictly need a key, but the client requires it
-PINECONE_HOST = "http://localhost:5081"
-INDEX_NAME = "index1"
-DIMENSION = 384 # Dimension for all-minilm:33m
+from utils import load_users, save_users, hash_password, check_password, get_ollama_embedding
+from pinecone_utils import initialize_pinecone
 
 # Initialize Pinecone
-try:
-    pc = PineconeGRPC(api_key=PINECONE_API_KEY, host=PINECONE_HOST, ssl_verify=False)
-    if not pc.has_index(INDEX_NAME):
-        pc.create_index(
-            name=INDEX_NAME,
-            dimension=DIMENSION,
-            metric="cosine",
-            spec=ServerlessSpec(
-                cloud="aws",
-                region="us-east-1",
-            )
-        )
-    index = pc.Index(INDEX_NAME)
-    st.success(f"Connected to Pinecone index: {INDEX_NAME}")
-except Exception as e:
-    st.error(f"Error connecting to Pinecone: {e}")
-    st.stop()
-
-# --- User Management Functions ---
-def load_users():
-    try:
-        with open(USERS_FILE, "r") as f:
-            return json.load(f)["users"]
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
-
-def save_users(users):
-    with open(USERS_FILE, "w") as f:
-        json.dump({"users": users}, f, indent=4)
-
-def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-def check_password(password, hashed_password):
-    return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
-
-# --- Ollama Embedding Function ---
-def get_ollama_embedding(text):
-    try:
-        response = requests.post(
-            OLLAMA_EMBEDDING_URL,
-            json={"model": "all-minilm:33m", "prompt": text}
-        )
-        response.raise_for_status()
-        return response.json()["embedding"]
-    except requests.exceptions.ConnectionError:
-        st.error("Could not connect to Ollama. Make sure the Ollama service is running and accessible at 'http://ollama:11434'.")
-        return None
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error getting embedding from Ollama: {e}")
-        return None
+index = initialize_pinecone()
 
 # --- Streamlit Pages ---
 def login_page():
@@ -114,6 +54,10 @@ def main_page():
         st.rerun()
 
     st.title("Streamlit RAG with Ollama and Pinecone Local")
+
+    if index is None:
+        st.error("Pinecone index not initialized. Please check the connection.")
+        return
 
     # Chunking options
     st.sidebar.header("Chunking Options")

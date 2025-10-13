@@ -1,81 +1,79 @@
 # Streamlit RAG with Ollama and Pinecone Local
 
-This project demonstrates a simple Retrieval-Augmented Generation (RAG) setup using Streamlit for the UI (running natively), Ollama for local text embeddings (running in Docker), and Pinecone Local as a vector database (running in Docker).
+This project demonstrates a Retrieval-Augmented Generation (RAG) system using Streamlit for the UI, Ollama for local embeddings, and Pinecone Local for vector storage. It now includes user authentication and session management to ensure data isolation.
 
-## Prerequisites
+## Features
 
-Before you begin, ensure you have Docker installed and running on your system.
+*   **User Authentication:** Login and registration system to manage user access.
+*   **Session Management:** Documents and queries are associated with logged-in users, ensuring data privacy.
+*   **Text Embedding:** Utilizes Ollama (specifically `all-minilm:33m`) to generate embeddings for text.
+*   **Vector Storage:** Stores text embeddings in a local Pinecone instance.
+*   **Semantic Search:** Retrieves similar text chunks based on a query using Pinecone.
+*   **Advanced Text Chunking:** Configurable `Chunk Size` and `Chunk Overlap` using `langchain.text_splitter.RecursiveCharacterTextSplitter`.
 
-## Setup and Running the Application
+## Project Structure
 
-Follow these steps to get the Streamlit RAG application up and running:
+*   `app.py`: The main Streamlit application, handling UI, session management, and orchestrating calls to utility functions.
+*   `utils.py`: Contains utility functions for user management (loading/saving users, password hashing) and Ollama embedding generation.
+*   `pinecone_utils.py`: Encapsulates Pinecone initialization and interaction logic.
+*   `requirements.txt`: Lists Python dependencies.
+*   `users.json`: Stores user credentials (username, hashed password, user ID).
+*   `README.md`: This documentation.
 
-### 1. Start Ollama Service
+## Setup and Installation
 
-First, run the Ollama Docker container and pull the `all-minilm:33m` model. This model will be used for generating text embeddings.
+### 1. Prerequisites
+
+*   **Docker:** Ensure Docker is installed and running on your system.
+*   **Ollama:** Download and install Ollama from [ollama.ai](https://ollama.ai/).
+    *   Pull the `all-minilm:33m` model: `ollama pull all-minilm:33m`
+
+### 2. Run Pinecone Local with Docker
+
+Start the Pinecone Local service using Docker:
 
 ```bash
-docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
-docker exec -it ollama ollama pull all-minilm:33m
-docker exec -d ollama ollama serve
+docker run -e PINECONE_API_KEY="pclocal" -p 5081:5081 pinecone/pinecone-local
 ```
 
-Verify Ollama is running and the model is available (optional):
-```bash
-# Try embedding
-curl -X POST \
-    http://localhost:11434/api/embeddings \
-    -H "Content-Type: application/json" \
-    -d '{"model": "all-minilm:33m", "prompt": "Hello world"}'
-```
-
-### 2. Start Pinecone Local Service
-
-Next, run the Pinecone Local Docker container. This will serve as your local vector database.
+### 3. Clone the Repository
 
 ```bash
-docker pull ghcr.io/pinecone-io/pinecone-local:latest
-docker rm -f pinecone-local || true # Remove if already exists
-docker run -d \
-    --name pinecone-local \
-    -e PORT=5081 \
-    -e PINECONE_HOST=localhost \
-    -p 5081-6000:5081-6000 \
-    --platform linux/amd64 \
-    ghcr.io/pinecone-io/pinecone-local:latest
+git clone https://github.com/AngJianHwee/RAG-Stack-Local.git
+cd RAG-Stack-Local
 ```
 
-### 3. Run the Streamlit Application Natively
+### 4. Install Python Dependencies
 
-First, ensure you have the Python dependencies installed:
+It is recommended to use a virtual environment.
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Then, run the Streamlit application:
+### 5. Run the Streamlit Application
 
 ```bash
 streamlit run app.py
 ```
 
-### 4. Access the Streamlit Application
+## Usage
 
-Open your web browser and navigate to:
+1.  **Access the Application:** Open your web browser and navigate to the URL provided by Streamlit (usually `http://localhost:8501`).
+2.  **Register/Login:**
+    *   On the login page, you can register a new user by providing a username and password.
+    *   After registration, log in with your new credentials.
+3.  **Store Embeddings:**
+    *   Once logged in, enter text into the "Enter text to embed and store:" text area.
+    *   Adjust "Chunk Size" and "Chunk Overlap" using the sidebar sliders if desired.
+    *   Click "Store Embedding" to process the text, generate embeddings, and store them in Pinecone, associated with your user ID.
+4.  **Retrieve Similar Text:**
+    *   Enter a query into the "Enter query text to find similar entries:" text area.
+    *   Click "Retrieve Similar" to find and display text chunks from *your* stored documents that are semantically similar to the query.
+5.  **Logout:** Click the "Logout" button in the sidebar to end your session.
 
-[http://localhost:8501](http://localhost:8501)
+## Important Notes
 
-You can now interact with the Streamlit application to:
-*   Enter text, get its embedding from Ollama, and store it in the Pinecone Local vector database.
-*   Enter a query text, get its embedding, and retrieve similar stored texts from Pinecone Local.
-
-## Project Structure
-
-*   `requirements.txt`: Lists the Python dependencies for the Streamlit application, including `langchain`.
-*   `app.py`: The main Streamlit application script, now with enhanced text chunking options.
-
-## New Features
-
-### Advanced Text Chunking
-
-The application now includes advanced text chunking options using `langchain.text_splitter.RecursiveCharacterTextSplitter`. You can adjust the `Chunk Size` and `Chunk Overlap` using sliders in the sidebar to optimize how your documents are split before embedding and storage. This allows for more granular control over the RAG process, potentially improving retrieval quality.
+*   Ensure Ollama and Pinecone Local are running before starting the Streamlit application.
+*   The `users.json` file stores user credentials. For a production environment, a more robust database solution would be recommended.
+*   All stored embeddings are filtered by the logged-in `user_id`, ensuring that users only interact with their own data.
