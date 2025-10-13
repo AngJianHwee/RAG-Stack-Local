@@ -174,6 +174,21 @@ def admin_page():
         st.session_state["items_per_page"] = 10
     if "current_page" not in st.session_state:
         st.session_state["current_page"] = 1
+    
+    # Initialize session state for messages
+    if "delete_message" not in st.session_state:
+        st.session_state["delete_message"] = {"type": None, "content": None}
+
+    # Display persistent message if available
+    if st.session_state["delete_message"]["type"] == "success":
+        st.success(st.session_state["delete_message"]["content"])
+        st.session_state["delete_message"] = {"type": None, "content": None} # Clear after display
+    elif st.session_state["delete_message"]["type"] == "error":
+        st.error(st.session_state["delete_message"]["content"])
+        st.session_state["delete_message"] = {"type": None, "content": None} # Clear after display
+    elif st.session_state["delete_message"]["type"] == "warning":
+        st.warning(st.session_state["delete_message"]["content"])
+        st.session_state["delete_message"] = {"type": None, "content": None} # Clear after display
 
     # Filter and pagination controls within a form
     with st.form("filter_pagination_form"):
@@ -220,9 +235,10 @@ def admin_page():
             if search_term_lower in metadata_value:
                 filtered_embeddings.append(match)
         st.session_state["filtered_embeddings"] = filtered_embeddings
-    elif "filtered_embeddings" not in st.session_state:
-        st.session_state["filtered_embeddings"] = embeddings # Initial load
-
+    elif "filtered_embeddings" not in st.session_state or st.session_state["delete_triggered"]: # Re-evaluate if delete was triggered
+        st.session_state["filtered_embeddings"] = embeddings # Initial load or after delete
+        st.session_state["delete_triggered"] = False # Reset flag
+    
     filtered_embeddings = st.session_state["filtered_embeddings"]
 
     if not filtered_embeddings:
@@ -283,18 +299,23 @@ def admin_page():
             if st.session_state["selected_embeddings"]:
                 with st.spinner("Deleting selected embeddings..."):
                     if delete_embeddings(rag_index, st.session_state["selected_embeddings"], user_id):
-                        st.success("Selected embeddings deleted successfully!")
+                        st.session_state["delete_message"] = {"type": "success", "content": "Selected embeddings deleted successfully!"}
                         st.session_state["selected_embeddings"] = [] # Clear selection
+                        st.session_state["delete_triggered"] = True # Set flag to force re-evaluation of filtered_embeddings
                         st.rerun() # Rerun to refresh the list
                     else:
-                        st.error("Failed to delete embeddings.")
+                        st.session_state["delete_message"] = {"type": "error", "content": "Failed to delete embeddings."}
+                        st.session_state["delete_triggered"] = True # Set flag
+                        st.rerun()
             else:
-                st.warning("No embeddings selected for deletion.")
+                st.session_state["delete_message"] = {"type": "warning", "content": "No embeddings selected for deletion."}
+                st.session_state["delete_triggered"] = True # Set flag
+                st.rerun()
 
     # Display embeddings with checkboxes and individual delete buttons
     for i, match in enumerate(paginated_embeddings):
         # Removed card_style for selected items
-        st.markdown(f"<div style='border: 1px solid #ccc; border-radius: 5px; padding: 10px; margin-bottom: 10px;'>", unsafe_allow_html=True)
+        # st.markdown(f"<div style='border: 1px solid #ccc; border-radius: 5px; padding: 10px; margin-bottom: 10px;'>", unsafe_allow_html=True)
         col_checkbox, col_content, col_delete_individual = st.columns([0.1, 0.7, 0.2])
         with col_checkbox:
             checkbox_key = f"checkbox_{match.id}"
@@ -320,10 +341,13 @@ def admin_page():
                         # Remove from selected_embeddings if it was selected
                         if match.id in st.session_state["selected_embeddings"]:
                             st.session_state["selected_embeddings"].remove(match.id)
-                        st.success(f"Embedding {match.id} deleted successfully!")
+                        st.session_state["delete_message"] = {"type": "success", "content": f"Embedding {match.id} deleted successfully!"}
+                        st.session_state["delete_triggered"] = True # Set flag
                         st.rerun()
                     else:
-                        st.error(f"Failed to delete embedding {match.id}.")
+                        st.session_state["delete_message"] = {"type": "error", "content": f"Failed to delete embedding {match.id}."}
+                        st.session_state["delete_triggered"] = True # Set flag
+                        st.rerun()
         st.markdown("</div>", unsafe_allow_html=True) # Close the div for card style
     
     # No need to reassign selected_embeddings here, it's updated by callbacks
@@ -334,13 +358,18 @@ def admin_page():
             if st.session_state["selected_embeddings"]:
                 with st.spinner("Deleting selected embeddings..."):
                     if delete_embeddings(rag_index, st.session_state["selected_embeddings"], user_id):
-                        st.success("Selected embeddings deleted successfully!")
+                        st.session_state["delete_message"] = {"type": "success", "content": "Selected embeddings deleted successfully!"}
                         st.session_state["selected_embeddings"] = [] # Clear selection
+                        st.session_state["delete_triggered"] = True # Set flag
                         st.rerun() # Rerun to refresh the list
                     else:
-                        st.error("Failed to delete embeddings.")
+                        st.session_state["delete_message"] = {"type": "error", "content": "Failed to delete embeddings."}
+                        st.session_state["delete_triggered"] = True # Set flag
+                        st.rerun()
             else:
-                st.warning("No embeddings selected for deletion.")
+                st.session_state["delete_message"] = {"type": "warning", "content": "No embeddings selected for deletion."}
+                st.session_state["delete_triggered"] = True # Set flag
+                st.rerun()
 
 # --- Main App Logic ---
 if "logged_in" not in st.session_state:
