@@ -124,3 +124,27 @@ def delete_embeddings(index, ids, user_id):
     except Exception as e:
         st.error(f"Error deleting embeddings from Pinecone: {e}")
         return False
+
+def get_user_rag_stats(index, user_id):
+    try:
+        # Query to get all embeddings for a specific user
+        results = index.query(
+            vector=[0.0] * DIMENSION, # Dummy vector
+            top_k=10000, # A sufficiently large number to retrieve all
+            include_metadata=True,
+            filter={"user_id": user_id}
+        )
+        
+        total_chunks = len(results.matches)
+        
+        unique_original_text_ids = set()
+        for match in results.matches:
+            if "original_text_id" in match.metadata:
+                unique_original_text_ids.add(match.metadata["original_text_id"])
+        
+        total_documents = len(unique_original_text_ids)
+        
+        return {"total_documents": total_documents, "total_chunks": total_chunks}
+    except Exception as e:
+        st.error(f"Error retrieving RAG statistics for user {user_id} from Pinecone: {e}")
+        return {"total_documents": 0, "total_chunks": 0}
