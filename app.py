@@ -234,8 +234,11 @@ def admin_page():
     # Pagination controls
     st.write(f"Page {st.session_state['current_page']} of {total_pages}")
     
-    col_page_buttons = st.columns([0.1, 0.1, 0.6, 0.1, 0.1]) # Adjust column widths for page numbers
-    with col_page_buttons[0]:
+    # Horizontal pagination buttons
+    # Create columns dynamically for page numbers
+    page_cols = st.columns([0.1] + [0.05] * min(total_pages, 5) + [0.1]) # Prev, up to 5 page numbers, Next
+    
+    with page_cols[0]:
         if st.button("Prev", key="prev_page_button", disabled=(st.session_state["current_page"] <= 1)):
             st.session_state["current_page"] -= 1
             st.rerun()
@@ -248,13 +251,13 @@ def admin_page():
     if end_page - start_page + 1 < page_numbers_to_display:
         start_page = max(1, end_page - page_numbers_to_display + 1)
 
-    for p_num in range(start_page, end_page + 1):
-        with col_page_buttons[2]: # Use the middle column for page numbers
+    for i, p_num in enumerate(range(start_page, end_page + 1)):
+        with page_cols[i + 1]: # Offset by 1 for the 'Prev' button column
             if st.button(str(p_num), key=f"page_button_{p_num}", type="primary" if p_num == st.session_state["current_page"] else "secondary"):
                 st.session_state["current_page"] = p_num
                 st.rerun()
 
-    with col_page_buttons[4]:
+    with page_cols[-1]: # Last column for 'Next' button
         if st.button("Next", key="next_page_button", disabled=(st.session_state["current_page"] >= total_pages)):
             st.session_state["current_page"] += 1
             st.rerun()
@@ -281,10 +284,8 @@ def admin_page():
 
     # Display embeddings with checkboxes and individual delete buttons
     for i, match in enumerate(paginated_embeddings):
-        is_selected = match.id in st.session_state["selected_embeddings"]
-        card_style = "background-color: #e6f7ff;" if is_selected else "" # Light blue for selected
-        
-        st.markdown(f"<div style='{card_style} border: 1px solid #ccc; border-radius: 5px; padding: 10px; margin-bottom: 10px;'>", unsafe_allow_html=True)
+        # Removed card_style for selected items
+        st.markdown(f"<div style='border: 1px solid #ccc; border-radius: 5px; padding: 10px; margin-bottom: 10px;'>", unsafe_allow_html=True)
         col_checkbox, col_content, col_delete_individual = st.columns([0.1, 0.7, 0.2])
         with col_checkbox:
             checkbox_key = f"checkbox_{match.id}"
@@ -297,7 +298,7 @@ def admin_page():
                     if embedding_id in st.session_state["selected_embeddings"]:
                         st.session_state["selected_embeddings"].remove(embedding_id)
             
-            st.checkbox("", key=checkbox_key, value=is_selected, on_change=on_checkbox_change, args=(match.id,))
+            st.checkbox("", key=checkbox_key, value=(match.id in st.session_state["selected_embeddings"]), on_change=on_checkbox_change, args=(match.id,))
         with col_content:
             st.markdown(f"**ID:** `{match.id}`")
             st.markdown(f"**Text:** {match.metadata.get('text', 'N/A')}")
