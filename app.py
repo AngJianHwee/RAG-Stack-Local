@@ -3,10 +3,13 @@ import time
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from utils import load_users, save_users, hash_password, check_password, get_ollama_embedding
-from pinecone_utils import initialize_pinecone
+from pinecone_utils import initialize_pinecone, get_user_embeddings, delete_embeddings
 
 # Initialize Pinecone
 index = initialize_pinecone()
+
+if "selected_embeddings" not in st.session_state:
+    st.session_state["selected_embeddings"] = []
 
 # --- Streamlit Pages ---
 def login_page():
@@ -45,12 +48,21 @@ def login_page():
         else:
             st.error("Please enter both username and password for registration.")
 
+def set_page(page_name):
+    st.session_state["page"] = page_name
+
 def main_page():
     st.sidebar.title(f"Welcome, {st.session_state['username']}!")
+    
+    if st.sidebar.button("Home"):
+        set_page("main")
+    if st.sidebar.button("Admin Page"):
+        set_page("admin")
     if st.sidebar.button("Logout"):
         st.session_state["logged_in"] = False
         st.session_state["username"] = None
         st.session_state["user_id"] = None
+        st.session_state["page"] = "main" # Reset page on logout
         st.rerun()
 
     st.title("Streamlit RAG with Ollama and Pinecone Local")
@@ -118,13 +130,99 @@ def main_page():
         else:
             st.warning("Please enter some query text.")
 
+def admin_page():
+    st.sidebar.title(f"Welcome, {st.session_state['username']}!")
+    if st.sidebar.button("Home"):
+        set_page("main")
+    if st.sidebar.button("Admin Page"):
+        set_page("admin")
+    if st.sidebar.button("Logout"):
+        st.session_state["logged_in"] = False
+        st.session_state["username"] = None
+        st.session_state["user_id"] = None
+        st.session_state["page"] = "main" # Reset page on logout
+        st.rerun()
+
+    st.title("Admin Page - Your Embeddings")
+
+    if index is None:
+        st.error("Pinecone index not initialized. Please check the connection.")
+        return
+
+    user_id = st.session_state["user_id"]
+    
+    st.subheader("Filter Embeddings")
+    search_term = st.text_input("Search by text content or ID:")
+
+    st.subheader("Your Stored Embeddings")
+
+    embeddings = get_user_embeddings(index, user_id)
+    
+    if not embeddings:
+        st.info("No embeddings found for your account.")
+        return
+
+    # Filter embeddings based on search_term
+    filtered_embeddings = []
+    if search_term:
+        search_term_lower = search_term.lower()
+        for match in embeddings:
+            text_content = match.metadata.get("text", "").lower()
+            original_text_id = match.metadata.get("original_text_id", "").lower()
+            if search_term_lower in text_content or search_term_lower in original_text_id or search_term_lower in match.id.lower():
+                filtered_embeddings.append(match)
+    else:
+        filtered_embeddings = embeddings
+
+    if not filtered_embeddings:
+        st.info("No embeddings match your search criteria.")
+        return
+
+    # Display embeddings with checkboxes for deletion
+    st.write(f"Displaying {len(filtered_embeddings)} of {len(embeddings)} embeddings.")
+    
+    # Create a form for batch deletion
+    with st.form("delete_embeddings_form"):
+        selected_for_deletion = []
+        for i, match in enumerate(filtered_embeddings):
+            col1, col2 = st.columns([0.1, 0.9])
+            with col1:
+                checkbox_key = f"checkbox_{match.id}"
+                if st.checkbox("", key=checkbox_key):
+                    selected_for_deletion.append(match.id)
+            with col2:
+                st.markdown(f"**ID:** `{match.id}`")
+                st.markdown(f"**Text:** {match.metadata.get('text', 'N/A')}")
+                st.markdown(f"**Original Text ID:** `{match.metadata.get('original_text_id', 'N/A')}`")
+                st.markdown("---")
+        
+        st.session_state["selected_embeddings"] = selected_for_deletion
+
+        delete_button = st.form_submit_button("Delete Selected Embeddings")
+
+        if delete_button:
+            if st.session_state["selected_embeddings"]:
+                with st.spinner("Deleting selected embeddings..."):
+                    if delete_embeddings(index, st.session_state["selected_embeddings"], user_id):
+                        st.success("Selected embeddings deleted successfully!")
+                        st.session_state["selected_embeddings"] = [] # Clear selection
+                        st.rerun() # Rerun to refresh the list
+                    else:
+                        st.error("Failed to delete embeddings.")
+            else:
+                st.warning("No embeddings selected for deletion.")
+
 # --- Main App Logic ---
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
     st.session_state["username"] = None
     st.session_state["user_id"] = None
+    st.session_state["page"] = "main" # Initialize page state
 
 if st.session_state["logged_in"]:
-    main_page()
+    if st.session_state["page"] == "main":
+        main_page()
+    elif st.session_state["page"] == "admin":
+        admin_page() # This function will be defined next
 else:
     login_page()

@@ -10,6 +10,7 @@ This project demonstrates a Retrieval-Augmented Generation (RAG) system using St
 *   **Vector Storage:** Stores text embeddings in a local Pinecone instance.
 *   **Semantic Search:** Retrieves similar text chunks based on a query using Pinecone.
 *   **Advanced Text Chunking:** Configurable `Chunk Size` and `Chunk Overlap` using `langchain.text_splitter.RecursiveCharacterTextSplitter`.
+*   **Admin Page:** View, filter, and batch delete your stored embeddings.
 
 ## Project Structure
 
@@ -67,10 +68,15 @@ streamlit run app.py
     *   Once logged in, enter text into the "Enter text to embed and store:" text area.
     *   Adjust "Chunk Size" and "Chunk Overlap" using the sidebar sliders if desired.
     *   Click "Store Embedding" to process the text, generate embeddings, and store them in Pinecone, associated with your user ID.
-4.  **Retrieve Similar Text:**
+4.  **Admin Page:**
+    *   Click the "Admin Page" button in the sidebar.
+    *   On this page, you can view all embeddings associated with your user ID.
+    *   Use the "Search by text content or ID" input to filter your embeddings.
+    *   Select multiple embeddings using the checkboxes and click "Delete Selected Embeddings" to perform a batch deletion.
+5.  **Retrieve Similar Text:**
     *   Enter a query into the "Enter query text to find similar entries:" text area.
     *   Click "Retrieve Similar" to find and display text chunks from *your* stored documents that are semantically similar to the query.
-5.  **Logout:** Click the "Logout" button in the sidebar to end your session.
+6.  **Logout:** Click the "Logout" button in the sidebar to end your session.
 
 ## Important Notes
 
