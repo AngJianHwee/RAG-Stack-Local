@@ -62,6 +62,28 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+## Configuration
+
+This project uses environment variables for sensitive information and configurable parameters, loaded from a `.env` file.
+
+1.  **Create `.env` file:** In the root directory of the project, create a file named `.env`.
+2.  **Add variables:** Populate the `.env` file with the following key-value pairs:
+
+    ```
+    PINECONE_API_KEY="pclocal"
+    PINECONE_HOST="http://localhost:5081"
+    RAG_INDEX_NAME="rag-index"
+    USER_INDEX_NAME="user-index"
+    DIMENSION=384
+    OLLAMA_EMBEDDING_URL="http://localhost:11434/api/embeddings"
+    ```
+    *   `PINECONE_API_KEY`: Your Pinecone API key (for local, "pclocal" is sufficient).
+    *   `PINECONE_HOST`: The host for your Pinecone instance (e.g., "http://localhost:5081" for local).
+    *   `RAG_INDEX_NAME`: The name of the Pinecone index for RAG embeddings.
+    *   `USER_INDEX_NAME`: The name of the Pinecone index for user credentials.
+    *   `DIMENSION`: The dimension of the embeddings (e.g., 384 for `all-minilm:33m`).
+    *   `OLLAMA_EMBEDDING_URL`: The URL for the Ollama embedding service.
+
 ## Testing
 
 Unit tests are provided for `utils.py` and `pinecone_utils.py` to ensure the core logic functions as expected.
@@ -112,5 +134,6 @@ pytest
 ## Important Notes
 
 *   Ensure Ollama and Pinecone Local are running before starting the Streamlit application.
+*   All configuration parameters are loaded from the `.env` file. Make sure it's correctly set up.
 *   User credentials (username, hashed password, user ID) are now stored in a dedicated Pinecone index (`user-index`). For a production environment, a more robust database solution with advanced security features would be recommended.
 *   All stored RAG embeddings are filtered by the logged-in `user_id`, ensuring that users only interact with their own data.

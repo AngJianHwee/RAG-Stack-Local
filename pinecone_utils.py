@@ -1,13 +1,17 @@
 import streamlit as st
 from pinecone.grpc import PineconeGRPC
 from pinecone import ServerlessSpec
+import os
+from dotenv import load_dotenv
+
+load_dotenv() # Load environment variables from .env file
 
 # Configuration for Pinecone Local
-PINECONE_API_KEY = "pclocal" # Pinecone local doesn't strictly need a key, but the client requires it
-PINECONE_HOST = "http://localhost:5081"
-RAG_INDEX_NAME = "rag-index"
-USER_INDEX_NAME = "user-index"
-DIMENSION = 384 # Dimension for all-minilm:33m
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_HOST = os.getenv("PINECONE_HOST")
+RAG_INDEX_NAME = os.getenv("RAG_INDEX_NAME")
+USER_INDEX_NAME = os.getenv("USER_INDEX_NAME")
+DIMENSION = int(os.getenv("DIMENSION", 384)) # Dimension for all-minilm:33m, with default
 
 def initialize_pinecone_rag_index():
     try:

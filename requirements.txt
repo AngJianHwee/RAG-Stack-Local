@@ -5,3 +5,4 @@ langchain
 bcrypt
 pytest
 pytest-mock
+python-dotenv

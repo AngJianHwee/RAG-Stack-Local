@@ -1,9 +1,13 @@
 import bcrypt
 import requests
 import streamlit as st # Streamlit is needed for st.error in get_ollama_embedding
+import os
+from dotenv import load_dotenv
 from pinecone_utils import initialize_pinecone_user_index, add_user_to_pinecone_index, get_user_from_pinecone_index, get_all_users_from_pinecone_index
 
-OLLAMA_EMBEDDING_URL = "http://localhost:11434/api/embeddings"
+load_dotenv() # Load environment variables from .env file
+
+OLLAMA_EMBEDDING_URL = os.getenv("OLLAMA_EMBEDDING_URL", "http://localhost:11434/api/embeddings")
 
 # Initialize Pinecone User Index
 user_index = initialize_pinecone_user_index()
