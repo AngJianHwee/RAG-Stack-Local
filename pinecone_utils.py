@@ -14,9 +14,13 @@ USER_INDEX_NAME = os.getenv("USER_INDEX_NAME")
 DIMENSION = int(os.getenv("DIMENSION", 384)) # Dimension for all-minilm:33m, with default
 
 def initialize_pinecone_rag_index():
+    if not PINECONE_API_KEY or not PINECONE_HOST:
+        st.error("Pinecone API Key or Host is not set. Please check your .env file.")
+        return None
     try:
         pc = PineconeGRPC(api_key=PINECONE_API_KEY, host=PINECONE_HOST, ssl_verify=False)
         if not pc.has_index(RAG_INDEX_NAME):
+            st.info(f"Pinecone RAG index '{RAG_INDEX_NAME}' not found. Creating it...")
             pc.create_index(
                 name=RAG_INDEX_NAME,
                 dimension=DIMENSION,
@@ -26,18 +30,22 @@ def initialize_pinecone_rag_index():
                     region="us-east-1",
                 )
             )
+            st.success(f"Pinecone RAG index '{RAG_INDEX_NAME}' created successfully.")
         index = pc.Index(RAG_INDEX_NAME)
         st.success(f"Connected to Pinecone RAG index: {RAG_INDEX_NAME}")
         return index
     except Exception as e:
-        st.error(f"Error connecting to Pinecone RAG index: {e}")
-        st.stop()
+        st.error(f"Error connecting to Pinecone RAG index. Please check your Pinecone configuration (API Key, Host, network connectivity): {e}")
         return None
 
 def initialize_pinecone_user_index():
+    if not PINECONE_API_KEY or not PINECONE_HOST:
+        st.error("Pinecone API Key or Host is not set. Please check your .env file.")
+        return None
     try:
         pc = PineconeGRPC(api_key=PINECONE_API_KEY, host=PINECONE_HOST, ssl_verify=False)
         if not pc.has_index(USER_INDEX_NAME):
+            st.info(f"Pinecone User index '{USER_INDEX_NAME}' not found. Creating it...")
             pc.create_index(
                 name=USER_INDEX_NAME,
                 dimension=DIMENSION, # Using same dimension for dummy vectors
@@ -47,12 +55,12 @@ def initialize_pinecone_user_index():
                     region="us-east-1",
                 )
             )
+            st.success(f"Pinecone User index '{USER_INDEX_NAME}' created successfully.")
         index = pc.Index(USER_INDEX_NAME)
         st.success(f"Connected to Pinecone User index: {USER_INDEX_NAME}")
         return index
     except Exception as e:
-        st.error(f"Error connecting to Pinecone User index: {e}")
-        st.stop()
+        st.error(f"Error connecting to Pinecone User index. Please check your Pinecone configuration (API Key, Host, network connectivity): {e}")
         return None
 
 def add_user_to_pinecone_index(user_index, username, hashed_password, user_id):
